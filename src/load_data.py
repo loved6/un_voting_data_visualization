@@ -3,62 +3,110 @@
 """
 Load datasets
 """
+import logging
 import pandas as pd
 from typing import Tuple
+
+from dataset import download_unga, download_unsc, latest_unga_dataset_path, latest_unsc_dataset_path
+
+def unga_dataset() -> str:
+    """Get the latest UNGA dataset path
+
+    Returns
+    -------
+    str
+        UNGA path
+    """
+    status = download_unga()
+    if not status:
+        raise RuntimeError("Expected UNGA dataset was not downloaded successfully")
+    return latest_unga_dataset_path()
+
+def unsc_dataset() -> str:
+    """Get the latest UNSC dataset path
+
+    Returns
+    -------
+    str
+        UNSC path
+    """
+    status = download_unsc()
+    if not status:
+        raise RuntimeError("Expected UNSC dataset was not downloaded successfully")
+    return latest_unsc_dataset_path()
+
+def load_unga_dataset(logger: logging.Logger = logging.getLogger(__name__)) -> pd.DataFrame:
+    """Load the latest UNGA dataset
+
+    Returns
+    -------
+    pd.DataFrame
+        UNGA dataset
+    """
+    path = unga_dataset()
+    logger.info(f"Loading UNGA dataset from {path}")
+    df = pd.read_csv(path)
+    df.columns = [col.strip() for col in df.columns]
+    df[['year', 'month', 'day']] = df['date'].str.split('-', expand=True).astype(int)
+    return df
+
+def load_unsc_dataset(logger: logging.Logger = logging.getLogger(__name__)) -> pd.DataFrame:
+    """Load the latest UNSC dataset
+
+    Returns
+    -------
+    pd.DataFrame
+        UNSC dataset
+    """
+    path = unsc_dataset()
+    logger.info(f"Loading UNSC dataset from {path}")
+    df = pd.read_csv(path)
+    df.columns = [col.strip() for col in df.columns]
+    df[['year', 'month', 'day']] = df['date'].str.split('-', expand=True).astype(int)
+
+    # Match the columns to the UNGA dataset
+    if 'permanent_member' in df.columns:
+        df = df.drop(columns=['permanent_member'])
+    if 'modality' in df.columns:
+        df = df.drop(columns=['modality'])
+    df['session'] = pd.NA
+    df['committe_report'] = pd.NA
+    df = df.rename(columns={
+        'description': 'title',
+        'agenda': 'agenda_title'
+    })
+
+    # Reorder columns to match UNGA columns
+    df = df.reindex(columns=df.columns, fill_value=pd.NA)
+
+    return df
+
+def merge_unga_unsc_datasets(logger: logging.Logger = logging.getLogger(__name__)) -> pd.DataFrame:
+    """Merge the latest UNGA and UNSC datasets
+
+    Returns
+    -------
+    pd.DataFrame
+        Merged dataset
+    """
+    df_unga = load_unga_dataset(logger=logger)
+    df_unsc = load_unsc_dataset(logger=logger)
+
+    # Concatenate the UNGA and UNSC datasets
+    df = pd.concat([df_unga, df_unsc], ignore_index=True)
+    df.reset_index(drop=True, inplace=True)
+    return df
 
 class DatasetUnga(object):
     """
     Class to handle loading and processing of UNGA voting datasets.
     """
-
-    def __init__(self, path: str = "../dataset/2025_7_21_ga_voting.csv", unsc_path: str = "../2025_7_21_sc_voting.csv") -> None:
+    def __init__(self, logger: logging.Logger = logging.getLogger(__name__)) -> None:
         """
-        Initialize the DatasetUnga with the path to the dataset.
-
-        Parameters
-        ----------
-        path : str
-            Path to the UNGA voting dataset CSV file.
+        Initialize the UN datasets.
         """
-        self.path = path
-        self.unsc_path = unsc_path
-        self.load_unga()
-
-    def load_unga(self) -> None:
-        """
-        Load the UNGA voting dataset.
-        """
-        df = pd.read_csv(self.path)
-        df.columns = [col.strip() for col in df.columns]
-        df[['year', 'month', 'day']] = df['date'].str.split('-', expand=True).astype(int)
-        self.df = df
-
-    def load_unsc(self) -> None:
-        """
-        Load the UN Security Council voting dataset.
-        """
-        if self.unsc_path is None:
-            self.unsc_df = None
-            return
-        df = pd.read_csv(self.unsc_path)
-        df.columns = [col.strip() for col in df.columns]
-        df[['year', 'month', 'day']] = df['date'].str.split('-', expand=True).astype(int)
-        # Match the columns to the UNGA dataset
-        if 'permanent_member' in df.columns:
-            df = df.drop(columns=['permanent_member', 'modality'])
-        df['session'] = pd.NA
-        df['committe_report'] = pd.NA
-        df = df.rename(columns={
-            'description': 'title',
-            'agenda': 'agenda_title'
-        })
-        # Reorder columns to match self.df columns
-        df = df.reindex(columns=self.df.columns, fill_value=pd.NA)
-        self.unsc_df = df
-
-        # Concatenate the UNGA and UNSC datasets
-        self.df = pd.concat([self.df, self.unsc_df], ignore_index=True)
-        self.df.reset_index(drop=True, inplace=True)
+        self.logger = logger
+        self.df = merge_unga_unsc_datasets(logger=self.logger)
 
     def voting_correlation(self, country1: str, country2: str, start_date: str = None, end_date: str = None, abstention_as_no: bool = False) -> float:
         """
@@ -243,25 +291,11 @@ class DatasetUnga(object):
 
         return corr_matrix, names
 
-def load_unga(path: str = "../dataset/2025_7_21_ga_voting.csv") -> pd.DataFrame:
-    """
-    Load the UNGA voting dataset.
-
-    Parameters
-    ----------
-    path : str
-        Path to the UNGA voting dataset CSV file.
-    """
-    df = pd.read_csv(path)
-    df.columns = [col.strip() for col in df.columns]
-    df[['year', 'month', 'day']] = df['date'].str.split('-', expand=True).astype(int)
-    return df
-
 if __name__ == "__main__":
     import time
 
     # time benchmark
-    ds = DatasetUnga(path="../dataset/2025_7_23_ga_voting.csv", unsc_path="../dataset/2025_7_23_sc_voting.csv")
+    ds = DatasetUnga()
     start_time = time.time()
     corr_matrix, names = ds.correlation_matrix(start_date='2024-01-01', end_date='2024-12-31')
     end_time = time.time()

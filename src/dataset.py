@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 """Dataset module
 """
+from datetime import datetime
+import glob
 import logging
 import os
+import re
 import requests
 from urllib.parse import urlparse, unquote
 from tqdm import tqdm
@@ -116,3 +119,61 @@ def download_unsc(dest_path: str = DATASET_DIR, logger: logging.Logger = logging
     else:
         logger.error("Failed to download UNSC dataset")
     return status
+
+def latest_unga_dataset_path() -> str:
+    """Finds the latest UNGA dataset file in the dataset directory.
+
+    Returns
+    -------
+    str
+        The path to the latest UNGA dataset file.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no UNGA dataset files are found.
+    """
+    files = glob.glob(os.path.join(DATASET_DIR, '**', '*ga_voting.csv'), recursive=True)
+    if not files:
+        raise FileNotFoundError(f"No UNGA dataset files found in {DATASET_DIR}")
+    dated_files = []
+    pattern = re.compile(r'(\d{4}_\d{1,2}_\d{1,2})_ga_voting\.csv$')
+    for f in files:
+        m = pattern.search(os.path.basename(f))
+        if m:
+            date_str = m.group(1)
+            date_obj = datetime.strptime(date_str, '%Y_%m_%d')
+            dated_files.append((date_obj, f))
+    if not dated_files:
+        raise FileNotFoundError(f"No dated UNGA dataset files found in {DATASET_DIR}")
+    latest_file = max(dated_files, key=lambda x: x[0])[1]
+    return latest_file
+
+def latest_unsc_dataset_path() -> str:
+    """Finds the latest UNSC dataset file in the dataset directory.
+
+    Returns
+    -------
+    str
+        The path to the latest UNSC dataset file.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no UNSC dataset files are found.
+    """
+    files = glob.glob(os.path.join(DATASET_DIR, '**', '*sc_voting.csv'), recursive=True)
+    if not files:
+        raise FileNotFoundError(f"No UNSC dataset files found in {DATASET_DIR}")
+    dated_files = []
+    pattern = re.compile(r'(\d{4}_\d{1,2}_\d{1,2})_sc_voting\.csv$')
+    for f in files:
+        m = pattern.search(os.path.basename(f))
+        if m:
+            date_str = m.group(1)
+            date_obj = datetime.strptime(date_str, '%Y_%m_%d')
+            dated_files.append((date_obj, f))
+    if not dated_files:
+        raise FileNotFoundError(f"No dated UNSC dataset files found in {DATASET_DIR}")
+    latest_file = max(dated_files, key=lambda x: x[0])[1]
+    return latest_file

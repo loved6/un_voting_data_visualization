@@ -16,7 +16,6 @@ from typing import Tuple, List
 import dash_bootstrap_components as dbc
 from load_data import DatasetUnga
 
-
 def get_corr_matrix(ds: DatasetUnga, start_date: str, end_date: str, abstention_as_no: bool = False) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Compute the correlation matrix for the dataset.
 
@@ -380,19 +379,7 @@ def main():
     app.title = "UN Voting Data Visualization"
 
     # Load the dataset
-    from load_data import DatasetUnga
-
-    unga_dataset_files = glob.glob(os.path.join(os.path.dirname(__file__), "../dataset/*_ga_voting.csv"))
-    if not unga_dataset_files:
-        raise FileNotFoundError("No GA voting CSV file found in ../dataset/")
-    print(f"Using dataset file: {unga_dataset_files[0]}")
-
-    unsc_dataset_files = glob.glob(os.path.join(os.path.dirname(__file__), "../dataset/*_sc_voting.csv"))
-    if not unsc_dataset_files:
-        raise FileNotFoundError("No SC voting CSV file found in ../dataset/")
-    print(f"Using dataset file: {unsc_dataset_files[0]}")
-
-    ds = DatasetUnga(path=unga_dataset_files[0], unsc_path=unsc_dataset_files[0])
+    ds = DatasetUnga()
 
     # Initialize the visualization classes
     viz1 = Visualization(ds)
