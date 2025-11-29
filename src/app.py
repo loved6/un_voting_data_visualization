@@ -597,7 +597,7 @@ def main():
         return fig1, fig2
 
     # Run the app
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=8050)
 
 if __name__ == '__main__':
     main()

@@ -26,10 +26,33 @@ A detailed report explaining the methodology, case study, and results can be fou
 
 ## Installation
 
-To set up the environment, run the following commands from this directory:
+### Option 1: Docker (Recommended)
+
+The easiest way to run the application is using Docker:
 
 ```bash
-cd src
+# Clone the repo and navigate to directory
+git clone https://github.com/loved6/un_voting_data_visualization.git
+cd un_voting_data_visualization
+
+# Using the convenience script
+./run-docker.sh
+
+# Or using docker-compose directly
+docker-compose up --build
+```
+
+Then navigate to `http://localhost:8050/` to view the dashboard.
+
+For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
+
+### Option 2: Local Installation
+
+To set up the environment locally, run the following commands from this directory:
+
+```bash
+git clone https://github.com/loved6/un_voting_data_visualization.git
+cd un_voting_data_visualization/src
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -37,13 +60,22 @@ pip install -r requirements.txt
 
 ## Running the Dashboard
 
-To run the dashboard, execute:
+### With Docker
+
+```bash
+./run-docker.sh
+# Or: docker-compose up
+```
+
+### Locally
+
+To run the dashboard locally, execute:
 
 ```bash
 python app.py
 ```
 
-In a browser, navigate to `http://127.0.0.1:8050/` to view the dashboard.
+In a browser, navigate to `http://localhost:8050/` (Docker) or `http://127.0.0.1:8050/` (local) to view the dashboard.
 
 ## Example: BRICS and G7 International Organizations
 

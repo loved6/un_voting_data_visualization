@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  un-voting-viz:
+    build: .
+    ports:
+      - "8050:8050"
+    volumes:
+      # Mount dataset directory to persist data
+      - ./dataset:/app/dataset
+    environment:
+      - PYTHONPATH=/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
